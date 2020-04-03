@@ -331,8 +331,6 @@ public class JobScheduling {
 	            	shortest += 1;
 	            	long del = p.processArray[shortest].arrivalTime - sysTime;
 	            	sysTime += del;
-	            	if(p.processArray[shortest].pId == 972378)
-	                	System.out.println("1"+sysTime);
 	            }
 	            long diff = sysTime + p.processArray[shortest].cpuBurstTime;
 	            int next = 0;
@@ -345,22 +343,16 @@ public class JobScheduling {
 	                if (i!=shortest && (p.processArray[i].arrivalTime <= diff) && !p.processArray[i].executed)
 	                {
 	                	if(p.processArray[i].arrivalTime > sysTime) {
-		                	if(p.processArray[i].pId == 972378)
-		                	System.out.println("2 "+sysTime);
 		                	/*if(sysTime <= p.processArray[i].arrivalTime)
 		                		exeTime = p.processArray[i].arrivalTime - p.processArray[shortest].arrivalTime;
 		                	else*/
 		                	exeTime = p.processArray[i].arrivalTime - sysTime;
 		                	if(exeTime<0) {
-		                		if(p.processArray[i].pId == 972378)
-		    	                	System.out.println("3 "+sysTime);
 		                		exeTime = 0;
 		                	}
 		                	updatedBurst = remainingTime[shortest] - exeTime;
 		                	Boolean fIn = false;
 		                	if(remainingTime[i] < updatedBurst) {
-		                		if(p.processArray[i].pId == 972378)
-		    	                	System.out.println("4"+sysTime);
 		                		if(!fIn) {
 			                    next = i;
 			                    preempt = true;
@@ -371,15 +363,14 @@ public class JobScheduling {
 				                    preempt = true;
 		                		}
 		                		finalExeTime = exeTime;
+		                	}
 	                	}
-		               }
+	                	
 	                }
 	            }
-	            
+	            if(!p.processArray[shortest].executed) {
 	            if(!preempt)
 	            {
-	            	if(p.processArray[shortest].pId == 972378)
-	                	System.out.println("5"+sysTime);
 	            	sysTime += remainingTime[shortest]; 
 	            	p.processArray[shortest].finishTime = sysTime;
 	            	p.processArray[shortest].executed = true;
@@ -387,10 +378,9 @@ public class JobScheduling {
 	            	countOfExeProcesses++;
 	            }
 	            else {
-	            	if(p.processArray[shortest].pId == 972378)
-	                	System.out.println("6"+sysTime);
 	            	sysTime += finalExeTime; 
 	            	remainingTime[shortest] -= finalExeTime;
+	            }
 	            }
 	            
 	        }
