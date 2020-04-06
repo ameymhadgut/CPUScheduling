@@ -13,8 +13,17 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Scanner;
 
+/**
+ * 
+ * @author arm994@nyu.edu
+ * Description: CPU Scheduling Algorithm Simulation for Operating Systems Course at CIMS
+ * Date: March 30, 2020 (Unfortunately, the world is dealing with a pandemic COVID-19 during this time)
+ *
+ */
 
 public class JobScheduling {
+	
+	/********* START: Wrapper classes for Process Structures ****************************/
 	
 	/**Class Name: Process 
 	* Description: Wrapper class to hold Process details 
@@ -45,6 +54,10 @@ public class JobScheduling {
 		int noOfProcess;
 		Process[] processArray = new Process[noOfProcess];
 	};
+	
+	/********* END: Wrapper classes for Process Structures ***************************/
+	
+	/********* START: Scheduling Algorithm Implementation ****************************/
 	
 	/**Class Name: Scheduler
 	 * Description: Abstract method to implement various job scheduling algorithms
@@ -414,6 +427,8 @@ public class JobScheduling {
 		    return p;
 		}
 	}
+	/********* END: Scheduling Algorithm Implementation ****************************/
+	
 	
 	/********* START: Utility Methods **********************************************/
 	/**Method: sortProcessByArrival 
@@ -550,6 +565,71 @@ public class JobScheduling {
 	
 	/********* END: Utility Methods **********************************************/
 	
+	/********* START: Driver Methods **********************************************/
+	
+	/**Class Name: AlgorithmName 
+	* Description: Constant Class to hold Names of Algos, used by the driver method
+	* */
+	public final class AlgorithmName {
+		public static final String allAlgos = "All";
+		public static final String fcfs = "FCFS";
+		public static final String sjf = "SJF";
+		public static final String rr = "RR";
+		public static final String srtf = "SRTF";
+	}
+	
+	/**Method: scheduleProcesses 
+	* Description: Accepts the processes & choice of algorithm, saves output file for the result
+	* Returns: void
+	* */
+	public static void scheduleProcesses(ProcessDetail processDetail, JobScheduling js, String algo, String inputFileName) throws IOException {
+		if(algo.equals(AlgorithmName.allAlgos)) {
+			processDetail = js.resetProcessDetail(processDetail);
+		    processDetail = js.sortProcessByArrival(processDetail);
+		    Scheduler sc = js.new FirstComeFirstServe();
+		    sc.schedule(processDetail, inputFileName);
+		    
+		    processDetail = js.resetProcessDetail(processDetail);
+		    processDetail = js.sortProcessByArrival(processDetail);
+		    sc = js.new ShortJobFirst();
+		    sc.schedule(processDetail, inputFileName);
+		    
+		    processDetail = js.resetProcessDetail(processDetail);
+		    processDetail = js.sortProcessByArrival(processDetail);
+		    sc = js.new RoundRobin();
+		    sc.schedule(processDetail, inputFileName);
+		    
+		    processDetail = js.resetProcessDetail(processDetail);
+		    processDetail = js.sortProcessByArrival(processDetail);
+		    sc = js.new ShortestRemainingTimeFirst();
+		    sc.schedule(processDetail, inputFileName);
+		}
+		else if(algo.equals(AlgorithmName.fcfs)) {
+			processDetail = js.resetProcessDetail(processDetail);
+		    processDetail = js.sortProcessByArrival(processDetail);
+		    Scheduler sc = js.new FirstComeFirstServe();
+		    sc.schedule(processDetail, inputFileName);
+		}
+		else if(algo.equals(AlgorithmName.sjf)) {
+			processDetail = js.resetProcessDetail(processDetail);
+		    processDetail = js.sortProcessByArrival(processDetail);
+		    Scheduler sc = js.new ShortJobFirst();
+		    sc.schedule(processDetail, inputFileName);
+		}
+		else if(algo.equals(AlgorithmName.rr)) {
+			processDetail = js.resetProcessDetail(processDetail);
+		    processDetail = js.sortProcessByArrival(processDetail);
+		    Scheduler sc = js.new RoundRobin();
+		    sc.schedule(processDetail, inputFileName);
+		}
+		 if(algo.equals(AlgorithmName.srtf)) {
+			processDetail = js.resetProcessDetail(processDetail);
+		    processDetail = js.sortProcessByArrival(processDetail);
+		    Scheduler sc = js.new ShortestRemainingTimeFirst();
+		    sc.schedule(processDetail, inputFileName);
+		}
+	}
+	
 	/**Method: main 
 	 * Description: Driver Method to run Scheduling jobs
 	 * */
@@ -563,25 +643,7 @@ public class JobScheduling {
 			    /* END: Read input file & create a Process Structure */
 			    
 			    /* START: Process Scheduling */
-			    processDetail = js.resetProcessDetail(processDetail);
-			    processDetail = js.sortProcessByArrival(processDetail);
-			    Scheduler sc = js.new FirstComeFirstServe();
-			    sc.schedule(processDetail, inputFileName);
-			    
-			    processDetail = js.resetProcessDetail(processDetail);
-			    processDetail = js.sortProcessByArrival(processDetail);
-			    sc = js.new ShortJobFirst();
-			    sc.schedule(processDetail, inputFileName);
-			    
-			    processDetail = js.resetProcessDetail(processDetail);
-			    processDetail = js.sortProcessByArrival(processDetail);
-			    sc = js.new RoundRobin();
-			    sc.schedule(processDetail, inputFileName);
-			    
-			    processDetail = js.resetProcessDetail(processDetail);
-			    processDetail = js.sortProcessByArrival(processDetail);
-			    sc = js.new ShortestRemainingTimeFirst();
-			    sc.schedule(processDetail, inputFileName);
+			    scheduleProcesses(processDetail, js, AlgorithmName.allAlgos, inputFileName);
 			    /* END: Process Scheduling */
 			}
 		}
@@ -590,4 +652,5 @@ public class JobScheduling {
 			ex.printStackTrace();
 		}
 	}
+	/********* END: Driver Methods **********************************************/
 }
