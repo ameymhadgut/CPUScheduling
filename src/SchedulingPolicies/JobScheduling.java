@@ -8,7 +8,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Scanner;
 
 
@@ -177,86 +179,86 @@ public class JobScheduling {
 		}
 		
 		public ProcessDetail getProcessFinishTime(ProcessDetail p) {
-			long remainTime[] = new long[p.noOfProcess]; 
+			Queue<Integer> activeQueue = new LinkedList<Integer>();
+			Queue<Integer> waitQueue = new LinkedList<Integer>();
 			long sysTime = p.processArray[0].arrivalTime;
-			Boolean[] executedThisRound = new Boolean[p.noOfProcess];
-		    for (int i = 0; i < p.noOfProcess; i++) {
-		    	remainTime[i] = p.processArray[i].cpuBurstTime;
-		    	executedThisRound[i] = false;
-		    }
-		    
-		    while(true) {
-		    	for (int i = 0 ; i < p.noOfProcess; i++) 
-	            { 
-	                if (remainTime[i] > 0 && !executedThisRound[i]) 
-	                {
-	                	if(p.processArray[i].arrivalTime <= sysTime) {
-		                	if (remainTime[i] > p.quantum) { 
-		                    	sysTime += p.quantum; 
-		                        remainTime[i] -= p.quantum;
-		                    } 
-		                    else { 
-		                    	sysTime += remainTime[i]; 
-		                        p.processArray[i].finishTime = sysTime; 
-		                        remainTime[i] = 0; 
-		                        p.processArray[i].executed = true;	                    
-		                    }
-		                	executedThisRound[i] = true;
-	                	}
-	                	else {
-	                		int earliestProcessAT = i;
-	                		for(int j = 0; j < p.noOfProcess; j++) {
-	                			if(p.processArray[j].arrivalTime < p.processArray[earliestProcessAT].arrivalTime
-	                					&& p.processArray[j].executed == false && !executedThisRound[j])
-	                				earliestProcessAT = j;
-	                		}
-	                		if(earliestProcessAT == i) {
-	                		    Boolean allPrevExe = true;
-	                			for(int j=0; j<earliestProcessAT; j++)
-	                			{
-	                				if(!p.processArray[j].executed)
-	                				{
-	                					allPrevExe = false;
-	                					break;
-	                				}
-	                			}
-	                			if(allPrevExe)
-	                				sysTime = p.processArray[earliestProcessAT].arrivalTime;
-	                			else
-	                				break;
-	                		}
-	                		/*if (remainTime[earliestProcessAT] > p.quantum) { 
-		                    	sysTime += p.quantum; 
-		                        remainTime[earliestProcessAT] -= p.quantum;
-		                        executedThisRound[earliestProcessAT] = true;
-		                    } 
-		                    else { 
-		                    	sysTime += remainTime[earliestProcessAT]; 
-		                        p.processArray[earliestProcessAT].finishTime = sysTime; 
-		                        remainTime[earliestProcessAT] = 0; 
-		                        p.processArray[earliestProcessAT].executed = true;	 
-		                        executedThisRound[earliestProcessAT] = true;
-		                    }*/
-	                		i = -1;
-	                	}
-	                } 
-	            }
-		    	boolean check = true; 
-		    	for(int i = 0 ; i < p.noOfProcess; i++) {
-		    		if(p.processArray[i].executed == false) {
-		    		 check = false;
-		    		 break;
-		    		}
-		    	}
-		    	
-	            if (check == true) 
-	              break;
-	            
-	            for(int i = 0 ; i < p.noOfProcess; i++) {
-	            	executedThisRound[i] = false;
-		    	}
-	            
-	        } 
+			long[] remainingTime = new long[p.noOfProcess];
+			for(int i = 0; i < p.noOfProcess; i++) {
+				remainingTime[i] = p.processArray[i].cpuBurstTime;
+			}
+			
+			for(int i = 0; i < p.noOfProcess; i++) {
+				if(p.processArray[i].arrivalTime <= sysTime && !p.processArray[i].executed) {
+					waitQueue.add(Integer.valueOf(i));
+				}
+			}
+			
+			while(true) {
+				activeQueue.addAll(waitQueue);
+				waitQueue.clear();
+				if(activeQueue.isEmpty() && waitQueue.isEmpty()) {
+					int b = 0;
+					for(int i = 0; i < p.noOfProcess; i++) {
+						if(!p.processArray[i].executed) {
+							b = i;
+							break;
+						}
+					}
+					sysTime = p.processArray[b].arrivalTime;
+					for(int i = 0; i < p.noOfProcess; i++) {
+						if(p.processArray[i].arrivalTime <= sysTime && !p.processArray[i].executed) {
+							activeQueue.add(i);
+						}
+					}
+				}
+				Queue<Integer> activeTemp = new LinkedList<Integer>();
+				activeTemp.addAll(activeQueue);
+				
+				for(int curr: activeQueue) {
+					Boolean pending = false;
+					if(remainingTime[curr] > p.quantum) {
+						remainingTime[curr] -= p.quantum;
+						sysTime += p.quantum;
+						pending = true;
+					}
+					else {
+						sysTime += remainingTime[curr];
+						remainingTime[curr] = 0;
+						p.processArray[curr].executed = true;
+						p.processArray[curr].finishTime = sysTime;
+						waitQueue.remove(curr);
+					}
+					activeTemp.remove(curr);
+					int[] temp = new int[p.noOfProcess];
+					int j = 0;
+					for(int i = 0; i < p.noOfProcess; i++) {
+						if(p.processArray[i].arrivalTime < sysTime && !p.processArray[i].executed 
+								&& i != curr && !waitQueue.contains(i) && !activeTemp.contains(i)) {
+							waitQueue.add(i);
+						}
+						else if(p.processArray[i].arrivalTime == sysTime) {
+							temp[j] = i;
+							j++;
+						}
+					}
+					if(pending)
+						waitQueue.add(curr);
+					if(j != 0) {
+						for(int i = 0; i < j; i++)
+							waitQueue.add(temp[i]);
+					}
+				}
+				activeQueue.clear();
+				boolean flag = false;
+				for(int i = 0; i < p.noOfProcess; i++) {
+					if(!p.processArray[i].executed) {
+						flag = true;
+						break;
+					}
+				}
+				if(!flag)
+					break;
+			}
 			return p;
 		}
 		
@@ -310,11 +312,13 @@ public class JobScheduling {
 	        int shortest = 0; 
 	        Boolean newP = false;
 	        while (countOfExeProcesses != p.noOfProcess) {
-	        	//System.out.println("Running"+sysTime);
+	        	
 	        	newP = false;
 	            for (int i = 0; i < p.noOfProcess; i++)  
 	            { 
 	                if ((p.processArray[i].arrivalTime <= sysTime) && !p.processArray[i].executed) {
+	                	if(p.processArray[i].pId == 27)
+	    	        		System.out.println("1 "+sysTime);
 	                	if(newP == false) {
 		                    shortest = i;
 		                    newP = true;
@@ -328,6 +332,8 @@ public class JobScheduling {
 	                } 
 	            }
 	            if(!newP && countOfExeProcesses != 0) {
+	            	if(p.processArray[shortest].pId == 27)
+		        		System.out.println("2 "+sysTime);
 	            	shortest += 1;
 	            	long del = p.processArray[shortest].arrivalTime - sysTime;
 	            	sysTime += del;
@@ -342,6 +348,8 @@ public class JobScheduling {
 	            { 
 	                if (i!=shortest && (p.processArray[i].arrivalTime <= diff) && !p.processArray[i].executed)
 	                {
+	                	if(p.processArray[i].pId == 27)
+	    	        		System.out.println("3 "+sysTime);
 	                	if(p.processArray[i].arrivalTime > sysTime) {
 		                	/*if(sysTime <= p.processArray[i].arrivalTime)
 		                		exeTime = p.processArray[i].arrivalTime - p.processArray[shortest].arrivalTime;
@@ -354,9 +362,9 @@ public class JobScheduling {
 		                	Boolean fIn = false;
 		                	if(remainingTime[i] < updatedBurst) {
 		                		if(!fIn) {
-			                    next = i;
-			                    preempt = true;
-			                    fIn = true;
+				                    next = i;
+				                    preempt = true;
+				                    fIn = true;
 		                		}
 		                		else if(remainingTime[i]<remainingTime[next]) {
 		                			next = i;
@@ -365,12 +373,13 @@ public class JobScheduling {
 		                		finalExeTime = exeTime;
 		                	}
 	                	}
-	                	
 	                }
 	            }
 	            if(!p.processArray[shortest].executed) {
 	            if(!preempt)
 	            {
+	            	if(p.processArray[shortest].pId == 27)
+		        		System.out.println("4 "+sysTime);
 	            	sysTime += remainingTime[shortest]; 
 	            	p.processArray[shortest].finishTime = sysTime;
 	            	p.processArray[shortest].executed = true;
@@ -378,6 +387,8 @@ public class JobScheduling {
 	            	countOfExeProcesses++;
 	            }
 	            else {
+	            	if(p.processArray[shortest].pId == 27)
+		        		System.out.println("5 "+sysTime);
 	            	sysTime += finalExeTime; 
 	            	remainingTime[shortest] -= finalExeTime;
 	            }
@@ -419,6 +430,13 @@ public class JobScheduling {
 					temp = p.processArray[j];
 					p.processArray[j] = p.processArray[j+1];
 					p.processArray[j+1] = temp;
+				}
+				else if(p.processArray[j].arrivalTime == p.processArray[j+1].arrivalTime) {
+					if(p.processArray[j].pId > p.processArray[j].pId) {
+						temp = p.processArray[j];
+						p.processArray[j] = p.processArray[j+1];
+						p.processArray[j+1] = temp;
+					}
 				}
 			}
 			
@@ -476,14 +494,14 @@ public class JobScheduling {
 		this.sortProcessByPID(pd);
 		String[] process = new String[pd.noOfProcess];
 		String space = " ";
-		String newLine = "\n";
+		//String newLine = "\n";
 		for(int i = 0; i < pd.noOfProcess; i++) {
-			if(i == pd.noOfProcess-1)
-				newLine = "";
+			//if(i == pd.noOfProcess-1)
+				//newLine = "";
 			process[i] = Long.toString(pd.processArray[i].pId) + space 
 						 + Long.toString(pd.processArray[i].finishTime) + space
 						 + Long.toString(pd.processArray[i].waitTime) + space
-						 + Long.toString(pd.processArray[i].turnArndTime) + newLine;
+						 + Long.toString(pd.processArray[i].turnArndTime);
 		}
 		List<String> lines = Arrays.asList(process);
         Files.write(Paths.get(fileName), 
