@@ -514,6 +514,9 @@ public class JobScheduling {
 	* Returns: void
 	* */
 	public void saveOutputFile(ProcessDetail pd, String fileName) throws IOException {
+		
+		fileName = fileName.substring(fileName.lastIndexOf("/") + 1);
+		System.out.println("2fileName "+ fileName);
 		this.sortProcessByPID(pd);
 		String[] process = new String[pd.noOfProcess];
 		String space = " ";
