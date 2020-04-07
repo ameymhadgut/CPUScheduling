@@ -315,6 +315,7 @@ public class JobScheduling {
  		}
 		
 		public ProcessDetail getProcessFinishTime(ProcessDetail p) {
+			
 			long remainingTime[] = new long[p.noOfProcess]; 
 
 	        for (int i = 0; i < p.noOfProcess; i++) 
@@ -330,8 +331,6 @@ public class JobScheduling {
 	            for (int i = 0; i < p.noOfProcess; i++)  
 	            { 
 	                if ((p.processArray[i].arrivalTime <= sysTime) && !p.processArray[i].executed) {
-	                	if(p.processArray[i].pId == 27)
-	    	        		System.out.println("1 "+sysTime);
 	                	if(newP == false) {
 		                    shortest = i;
 		                    newP = true;
@@ -345,66 +344,75 @@ public class JobScheduling {
 	                } 
 	            }
 	            if(!newP && countOfExeProcesses != 0) {
-	            	if(p.processArray[shortest].pId == 27)
-		        		System.out.println("2 "+sysTime);
-	            	shortest += 1;
-	            	long del = p.processArray[shortest].arrivalTime - sysTime;
-	            	sysTime += del;
+	            	int newIndex = 0;
+	            	for(int i = 0; i < p.noOfProcess; i++) {
+	            		if(!p.processArray[i].executed) {
+	            			newIndex = i;
+	            			break;
+	            		}
+	            	}
+	            	shortest = newIndex;
+	            	sysTime = p.processArray[shortest].arrivalTime;
 	            }
-	            long diff = sysTime + p.processArray[shortest].cpuBurstTime;
-	            int next = 0;
+	            long diff = sysTime + remainingTime[shortest];
+	            int next = shortest;
 	            Boolean preempt = false;
 	            long updatedBurst = 0;
 	            long exeTime = 0;
 	            long finalExeTime = 0;
 	            for (int i = 0; i < p.noOfProcess; i++)  
 	            { 
-	                if (i!=shortest && (p.processArray[i].arrivalTime <= diff) && !p.processArray[i].executed)
+	                if (i!=shortest && (p.processArray[i].arrivalTime <= diff) && !p.processArray[i].executed
+	                		&& p.processArray[i].arrivalTime >= sysTime)
 	                {
-	                	if(p.processArray[i].pId == 27)
-	    	        		System.out.println("3 "+sysTime);
-	                	if(p.processArray[i].arrivalTime > sysTime) {
-		                	/*if(sysTime <= p.processArray[i].arrivalTime)
-		                		exeTime = p.processArray[i].arrivalTime - p.processArray[shortest].arrivalTime;
-		                	else*/
-		                	exeTime = p.processArray[i].arrivalTime - sysTime;
-		                	if(exeTime<0) {
-		                		exeTime = 0;
-		                	}
-		                	updatedBurst = remainingTime[shortest] - exeTime;
-		                	Boolean fIn = false;
-		                	if(remainingTime[i] < updatedBurst) {
-		                		if(!fIn) {
-				                    next = i;
-				                    preempt = true;
-				                    fIn = true;
-		                		}
-		                		else if(remainingTime[i]<remainingTime[next]) {
-		                			next = i;
-				                    preempt = true;
-		                		}
-		                		finalExeTime = exeTime;
-		                	}
-	                	}
+		                		exeTime = p.processArray[i].arrivalTime - sysTime;
+			                	updatedBurst = remainingTime[next] - exeTime;
+			                	Boolean fIn = false;
+			                	if(remainingTime[i] < updatedBurst) {
+			                		if(!fIn) {
+					                    next = i;
+					                    preempt = true;
+					                    fIn = true;
+			                		}
+			                		else if(remainingTime[i]<remainingTime[next]) {
+			                			next = i;
+					                    preempt = true;
+			                		}
+			                		finalExeTime = exeTime;
+			                	} else if(remainingTime[i] == updatedBurst) {
+			                		if(!fIn && p.processArray[i].arrivalTime < p.processArray[shortest].arrivalTime) {
+					                    next = i;
+					                    preempt = true;
+					                    fIn = true;
+			                		}
+			                		else if(p.processArray[i].arrivalTime < p.processArray[next].arrivalTime) {
+			                			next = i;
+					                    preempt = true;
+			                		}
+			                		finalExeTime = exeTime;
+			                	}
+			                	if(preempt)
+			                		break;
 	                }
+	                
+	                
+	            }
+	            if(preempt) {
+	            	finalExeTime = p.processArray[next].arrivalTime - sysTime;
 	            }
 	            if(!p.processArray[shortest].executed) {
-	            if(!preempt)
-	            {
-	            	if(p.processArray[shortest].pId == 27)
-		        		System.out.println("4 "+sysTime);
-	            	sysTime += remainingTime[shortest]; 
-	            	p.processArray[shortest].finishTime = sysTime;
-	            	p.processArray[shortest].executed = true;
-	            	remainingTime[shortest] = 0;
-	            	countOfExeProcesses++;
-	            }
-	            else {
-	            	if(p.processArray[shortest].pId == 27)
-		        		System.out.println("5 "+sysTime);
-	            	sysTime += finalExeTime; 
-	            	remainingTime[shortest] -= finalExeTime;
-	            }
+		            if(!preempt)
+		            {
+		            	sysTime += remainingTime[shortest]; 
+		            	p.processArray[shortest].finishTime = sysTime;
+		            	p.processArray[shortest].executed = true;
+		            	remainingTime[shortest] = 0;
+		            	countOfExeProcesses++;
+		            }
+		            else {
+		            	sysTime += finalExeTime; 
+		            	remainingTime[shortest] -= finalExeTime;
+		            }
 	            }
 	            
 	        }
@@ -582,8 +590,8 @@ public class JobScheduling {
 	* Description: Accepts the processes & choice of algorithm, saves output file for the result
 	* Returns: void
 	* */
-	public static void scheduleProcesses(ProcessDetail processDetail, JobScheduling js, String algo, String inputFileName) throws IOException {
-		if(algo.equals(AlgorithmName.allAlgos)) {
+	public static void scheduleProcesses(ProcessDetail processDetail, JobScheduling js, String algorithmName, String inputFileName) throws IOException {
+		if(algorithmName.equals(AlgorithmName.allAlgos)) {
 			processDetail = js.resetProcessDetail(processDetail);
 		    processDetail = js.sortProcessByArrival(processDetail);
 		    Scheduler sc = js.new FirstComeFirstServe();
@@ -604,25 +612,25 @@ public class JobScheduling {
 		    sc = js.new ShortestRemainingTimeFirst();
 		    sc.schedule(processDetail, inputFileName);
 		}
-		else if(algo.equals(AlgorithmName.fcfs)) {
+		else if(algorithmName.equals(AlgorithmName.fcfs)) {
 			processDetail = js.resetProcessDetail(processDetail);
 		    processDetail = js.sortProcessByArrival(processDetail);
 		    Scheduler sc = js.new FirstComeFirstServe();
 		    sc.schedule(processDetail, inputFileName);
 		}
-		else if(algo.equals(AlgorithmName.sjf)) {
+		else if(algorithmName.equals(AlgorithmName.sjf)) {
 			processDetail = js.resetProcessDetail(processDetail);
 		    processDetail = js.sortProcessByArrival(processDetail);
 		    Scheduler sc = js.new ShortJobFirst();
 		    sc.schedule(processDetail, inputFileName);
 		}
-		else if(algo.equals(AlgorithmName.rr)) {
+		else if(algorithmName.equals(AlgorithmName.rr)) {
 			processDetail = js.resetProcessDetail(processDetail);
 		    processDetail = js.sortProcessByArrival(processDetail);
 		    Scheduler sc = js.new RoundRobin();
 		    sc.schedule(processDetail, inputFileName);
 		}
-		 if(algo.equals(AlgorithmName.srtf)) {
+		 if(algorithmName.equals(AlgorithmName.srtf)) {
 			processDetail = js.resetProcessDetail(processDetail);
 		    processDetail = js.sortProcessByArrival(processDetail);
 		    Scheduler sc = js.new ShortestRemainingTimeFirst();
@@ -643,6 +651,15 @@ public class JobScheduling {
 			    /* END: Read input file & create a Process Structure */
 			    
 			    /* START: Process Scheduling */
+			    /* In the below method scheduleProcesses:
+			     * Use "algorithmName" parameter to pass the algorithm which you want to run. 
+			     * Available Options:
+			     * AlgorithmName.allAlgos: To run all the 4 Algorithms
+			     * AlgorithmName.fcfs: To run First Come First Serve
+			     * AlgorithmName.rr: To run Round Robin
+			     * AlgorithmName.sjf: To run Shortest Job First
+			     * AlgorithmName.srtf: To run Shortest Remaining Time First 
+			     * */
 			    scheduleProcesses(processDetail, js, AlgorithmName.allAlgos, inputFileName);
 			    /* END: Process Scheduling */
 			}
